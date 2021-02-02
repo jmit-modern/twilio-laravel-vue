@@ -4,8 +4,8 @@ use App\Models\Categories;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use Session;
-use DB;
+use Session as Session;
+use DB as DB;
 
 
 

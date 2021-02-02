@@ -121,7 +121,7 @@ class PagesController extends Controller
 
     public function category_info(Request $request) {
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $category = Categories::where('category_url', $request->type)->first();
         $consultants = Consultant::whereHas('profile', function($q) use ($request) {
@@ -196,7 +196,7 @@ class PagesController extends Controller
 
     public function categorySearch(Request $request) {
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $category = Categories::where('category_url', $request->category)->first();
         $consultants = Consultant::whereHas('profile', function($q) use ($request) {
@@ -339,7 +339,7 @@ class PagesController extends Controller
 
     public function features() {
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $page = Page::where('id','10')->first();
         $data = json_decode($page->page_body);
@@ -393,7 +393,7 @@ class PagesController extends Controller
 
     public function become_consultant() {
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $categories = Categories::all();
         $count = Categories::count();
@@ -409,7 +409,7 @@ class PagesController extends Controller
 
     public function about_us() {
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $page = Page::where('id','3')->first();
         $data = json_decode($page->page_body);
@@ -463,7 +463,7 @@ class PagesController extends Controller
 
     public function privacy(){
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $page = Page::where('id','6')->first();
         $data = json_decode($page->page_body);
@@ -475,7 +475,7 @@ class PagesController extends Controller
 
     public function terms_customer() {
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $page = Page::where('id','5')->first();
         $data = json_decode($page->page_body);
@@ -487,7 +487,7 @@ class PagesController extends Controller
 
     public function terms_provider() {
         if(Auth::check()){
-            return App::getLocale() == 'en' ? Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') : Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord');
+            return App::getLocale() == 'en' ? ( Auth::user()->role == 'admin' ? redirect('/admin-dashboard') : redirect('/dashboard') ) : ( Auth::user()->role !='admin' ? redirect('/no/oversikt') : redirect('/no/admin-dashbord') );
         }
         $page = Page::where('id','9')->first();
         $data = json_decode($page->page_body);
