@@ -251,8 +251,8 @@
         </div>
       </div>
       <div class="modal-body">
-        <div ref="video_tag" class="main"></div>
-        <div ref="self_video_tag" class="self"></div>
+        <div ref="video_tag" class="main" id="remote_video"></div>
+        <div ref="self_video_tag" class="self" id="self_video"></div>
         <div class="btn-group">
           <button type="button" v-on:click="handlingCallMode('voice')"><img src="/images/home/voice-available.svg" v-if="is_call_mode" /><img src="/images/home/voice-unavailable.svg" v-else /></button>
           <button type="button" v-on:click="handlingCallMode('video')"><img src="/images/home/video-available.svg" v-if="is_video_mode" /><img src="/images/home/video-unavailable.svg" v-else /></button>
@@ -364,6 +364,7 @@ import { required, minValue } from "vuelidate/lib/validators";
 import { isMobile } from "mobile-device-detect";
 import EllipsisLoader from './Loader';
 import CustomStarRating from './CustomRating';
+import { muteYourAudio, participantMutedOrUnmutedMedia } from '../helpers/local-media-controls';
 
 const Video = require("twilio-video");
 const {
@@ -547,8 +548,11 @@ export default {
         var msg = JSON.parse(data.data);
         console.log(msg);
         if (msg.type == "token") {
+
           self.voice_token_name = msg.token;
+
         } else if (msg.type == "request") {
+
           if (!msg.sub_type && msg.name == "accepted") {
             self.stopAudio("outgoing");
             self.time_clock = Number(self.form.minute) * 60; // set time count value
@@ -618,9 +622,13 @@ export default {
               self.stopAudio("incoming");
               self.is_incomingSession_modal = false;
               self.incoming_user = {};
+            } else if (msg.sub_type == "video_call_start") {
+              self.is_incomingVideo_modal = true
             }
           }
+
         } else {
+
           const index = self.users.findIndex(element => parseInt(element.user_id) === parseInt(msg.id));
           if (index > -1) {
             self.users[index].user.status = msg.status;
@@ -632,6 +640,7 @@ export default {
               self.users.push(res.data);
             });
           }
+
         }
       };
       this.$socket.sendObj({ command: "subscribe", channel: this.authUser.user.id });
@@ -765,8 +774,7 @@ export default {
           consultant_email: this.authUser.user.email,
           type: data.user.role,
         });
-        console.log('check_channel res::')
-        console.log(res)
+        // console.log('check_channel res::', res)
         
         const chat_token = await this.fetchChatToken();
         await this.initializeChatClient(
@@ -830,9 +838,11 @@ export default {
       console.log("accepted incoming call");
     },
     async acceptIncomingVideoCall() {
+      this.is_call_mode = true;
+      this.is_video_mode = true;
       this.is_incomingVideo_modal = false;
       this.is_call_modal = true;
-      this.device_connection.accept();
+      // this.device_connection.accept();
       const self = this;
 
       if (this.$refs.self_video_tag.children.length == 0) {
@@ -845,16 +855,19 @@ export default {
 
       const { data } = await axios.post("/api/video_token", {
         userName: this.authUser.user.first_name + this.authUser.user.last_name,
-        roomName: this.roomName
+        roomName: `videoRoom-${this.authUser.user.id}-${this.current_user.user.id}`
       });
-
-      Video.connect(data.token, { name: this.roomName, logLevel: "debug" }).then(
+      Video.connect(data.token, { name: `videoRoom-${this.authUser.user.id}-${this.current_user.user.id}` }).then(
         room => {
-          console.log("Successfully joined a Room: ", room);
+          // console.log("Successfully joined a Room: ", room);
           self.activeRoom = room;
 
-          room.participants.forEach(self.participantConnected);
+          // Subscribe to the media published by RemoteParticipants already in the Room.
+          room.participants.forEach(participant=> {
+            self.participantConnected(participant);
+          });
 
+          // Subscribe to the media published by RemoteParticipants joining the Room later.
           room.on("participantConnected", self.participantConnected);
 
           room.on("participantDisconnected", self.participantDisconnected);
@@ -862,6 +875,19 @@ export default {
           room.once("disconnected", error =>
             room.participants.forEach(self.participantDisconnected)
           );
+
+          // participantMutedOrUnmutedMedia(room, track => {
+          //   track.detach().forEach(element => {
+          //     element.remove();
+          //   });
+          // }, track => {
+          //     if (track.kind === 'audio') {
+          //       audioPreview.appendChild(track.attach());
+          //     }
+          //     if (track.kind === 'video') {
+          //       videoPreview.appendChild(track.attach());
+          //     }
+          // });
         },
         err => {
           console.error("Unable to connect to Room: " + err.message);
@@ -1009,7 +1035,7 @@ export default {
       );
     },
     participantConnected(participant) {
-      console.log('Participant "%s" connected', participant.identity);
+      console.log('Participant123 "%s" connected', participant.identity);
 
       const div = document.createElement("div");
       div.ref = participant.sid;
@@ -1202,27 +1228,28 @@ export default {
         case "voice":
           this.is_call_mode = !this.is_call_mode;
           if (!this.is_call_mode) {
-            this.activeRoom.localParticipant.audioTracks.forEach((publication) => {
-              publication.track.disable();
+            this.activeRoom.localParticipant.audioTracks.forEach((track) => {
+              track.disable();
             });
           } else {
             if (this.is_session && !this.is_paused) {
-              this.activeRoom.localParticipant.audioTracks.forEach((publication) => {
-                publication.track.enable();
+              this.activeRoom.localParticipant.audioTracks.forEach((track) => {
+                track.enable();
               });
             }
           }
+          // muteYourAudio(this.activeRoom)
           break;
         case "video":
           this.is_video_mode = !this.is_video_mode;
           if (!this.is_video_mode) {
-            this.activeRoom.localParticipant.videoTracks.forEach((publication) => {
-              publication.track.disable();
+            this.activeRoom.localParticipant.videoTracks.forEach((track) => {
+              track.disable();
             });
           } else {
             if (this.is_session && !this.is_paused) {
-              this.activeRoom.localParticipant.videoTracks.forEach((publication) => {
-                publication.track.enable();
+              this.activeRoom.localParticipant.videoTracks.forEach((track) => {
+                track.enable();
               });
             }
           }

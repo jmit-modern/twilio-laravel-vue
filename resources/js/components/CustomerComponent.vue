@@ -367,8 +367,8 @@
         </div>
       </div>
       <div class="modal-body">
-        <div ref="video_tag" class="main"></div>
-        <div ref="self_video_tag" class="self"></div>
+        <div ref="video_tag" class="main" id="remote_video"></div>
+        <div ref="self_video_tag" class="self" id="self_video"></div>
         <div class="btn-group">
           <button type="button" v-on:click="handlingCallMode('voice')"><img src="/images/home/voice-available.svg" v-if="is_call_mode" /><img src="/images/home/voice-unavailable.svg" v-else /></button>
           <button type="button" v-on:click="handlingCallMode('video')"><img src="/images/home/video-available.svg" v-if="is_video_mode" /><img src="/images/home/video-unavailable.svg" v-else /></button>
@@ -988,16 +988,16 @@ export default {
         );
       }
 
-      var params = {
-        phone: this.current_consultant.user.phone,
-        callerId: this.authUser.user.phone,
-        name:
-          this.current_consultant.user.first_name +
-          this.current_consultant.user.last_name,
-        type: "video",
-        roomName: `videoRoom-${this.current_consultant.user.id}-${this.authUser.user.id}`
-      };
-      this.device.connect(params);
+      // var params = {
+      //   phone: this.current_consultant.user.phone,
+      //   callerId: this.authUser.user.phone,
+      //   name:
+      //     this.current_consultant.user.first_name +
+      //     this.current_consultant.user.last_name,
+      //   type: "video",
+      //   roomName: `videoRoom-${this.current_consultant.user.id}-${this.authUser.user.id}`
+      // };
+      // this.device.connect(params);
 
       const token = await this.fetchVideoToken();
       Video.connect(token, {
@@ -1015,6 +1015,9 @@ export default {
           room.once("disconnected", error =>
             room.participants.forEach(self.participantDisconnected)
           );
+
+          //Send video call start request when the room is ready
+          this.sendRequestSocket("video_call_start");
         },
         err => {
           console.error("Unable to connect to Room: " + err.message);
@@ -1189,13 +1192,13 @@ export default {
         case "voice":
           this.is_call_mode = !this.is_call_mode;
           if (!this.is_call_mode) {
-            this.activeRoom.localParticipant.audioTracks.forEach((publication) => {
-              publication.track.disable();
+            this.activeRoom.localParticipant.audioTracks.forEach((track) => {
+              track.disable();
             });
           } else {
             if (this.is_session && !this.is_paused) {
-              this.activeRoom.localParticipant.audioTracks.forEach((publication) => {
-                publication.track.enable();
+              this.activeRoom.localParticipant.audioTracks.forEach((track) => {
+                track.enable();
               });
             }
           }
@@ -1203,13 +1206,13 @@ export default {
         case "video":
           this.is_video_mode = !this.is_video_mode;
           if (!this.is_video_mode) {
-            this.activeRoom.localParticipant.videoTracks.forEach((publication) => {
-              publication.track.disable();
+            this.activeRoom.localParticipant.videoTracks.forEach((track) => {
+              track.disable();
             });
           } else {
             if (this.is_session && !this.is_paused) {
-              this.activeRoom.localParticipant.videoTracks.forEach((publication) => {
-                publication.track.enable();
+              this.activeRoom.localParticipant.videoTracks.forEach((track) => {
+                track.enable();
               });
             }
           }
