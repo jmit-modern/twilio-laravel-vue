@@ -74,13 +74,8 @@ function participantMutedOrUnmutedMedia(room, onMutedMedia, onUnmutedMedia) {
   });
 }
 
-function test(){
-  console.log("test123")
-}
-
 exports.muteYourAudio = muteYourAudio;
 exports.muteYourVideo = muteYourVideo;
 exports.unmuteYourAudio = unmuteYourAudio;
 exports.unmuteYourVideo = unmuteYourVideo;
 exports.participantMutedOrUnmutedMedia = participantMutedOrUnmutedMedia;
-exports.test = test;

@@ -367,12 +367,15 @@
         </div>
       </div>
       <div class="modal-body">
-        <div ref="video_tag" class="main" id="remote_video"></div>
+        <div ref="video_tag" class="main" id="remote_video">
+          <div ref="videoPreview" id="videoPreview"></div>
+          <div ref="audioPreview" id="audioPreview"></div>
+        </div>
         <div ref="self_video_tag" class="self" id="self_video"></div>
         <div class="btn-group">
-          <button type="button" v-on:click="handlingCallMode('voice')"><img src="/images/home/voice-available.svg" v-if="is_call_mode" /><img src="/images/home/voice-unavailable.svg" v-else /></button>
+          <button type="button" v-on:click="handlingCallMode('audio')"><img src="/images/home/voice-available.svg" v-if="is_call_mode" /><img src="/images/home/voice-unavailable.svg" v-else /></button>
           <button type="button" v-on:click="handlingCallMode('video')"><img src="/images/home/video-available.svg" v-if="is_video_mode" /><img src="/images/home/video-unavailable.svg" v-else /></button>
-          <button type="button" v-on:click="handlingCallMode('share')"><img src="/images/home/screen-share-available.svg" v-if="is_share_mode" /><img src="/images/home/screen-share-unavailable.svg" v-else /></button>
+          <button type="button" ref="stopScreenShareRef" v-on:click="handlingShareMode"><img src="/images/home/screen-share-available.svg" v-if="is_share_mode" /><img src="/images/home/screen-share-unavailable.svg" v-else /></button>
           <button type="button" v-on:click="handleClose('call')"><img src="/images/hang-up.svg" /></button>
         </div>
       </div>
@@ -393,6 +396,14 @@ import { required, minValue } from "vuelidate/lib/validators";
 import { isMobile } from "mobile-device-detect";
 import EllipsisLoader from './Loader';
 import CustomStarRating from './CustomRating';
+import { createScreenTrack } from "../helpers/screenshare";
+import { 
+  muteYourAudio,
+  unmuteYourAudio,
+  muteYourVideo,
+  unmuteYourVideo,
+  participantMutedOrUnmutedMedia  
+} from '../helpers/local-media-controls';
 
 const Video = require("twilio-video");
 const {
@@ -504,6 +515,7 @@ export default {
       form: {
         minute: 0
       },
+      screenTrack: null
     };
   },
   validations: {
@@ -609,7 +621,7 @@ export default {
       } else {
         connection.accept();
         if (self.$refs.self_video_tag.children.length == 0) {
-          createLocalVideoTrack({ audio: true, video: { width: 150 } }).then(
+          createLocalVideoTrack({ name: "camera", audio: true, video: { width: 150 } }).then(
             track => {
               self.$refs.self_video_tag.appendChild(track.attach());
             }
@@ -627,7 +639,10 @@ export default {
             console.log("Successfully joined a Room: ", room);
             self.activeRoom = room;
 
-            room.participants.forEach(self.participantConnected);
+            // Subscribe to the media published by RemoteParticipants already in the Room.
+            room.participants.forEach(participant=> {
+              self.participantConnected(participant);
+            });
 
             room.on("participantConnected", self.participantConnected);
 
@@ -636,6 +651,19 @@ export default {
             room.once("disconnected", error =>
               room.participants.forEach(self.participantDisconnected)
             );
+
+            participantMutedOrUnmutedMedia(room, track => {
+              track.detach().forEach(element => {
+                element.remove();
+              });
+            }, track => {
+                if (track.kind === 'audio') {
+                  audioPreview.appendChild(track.attach());
+                }
+                if (track.kind === 'video') {
+                  videoPreview.appendChild(track.attach());
+                }
+            });
           },
           err => {
             console.error("Unable to connect to Room: " + err.message);
@@ -842,7 +870,6 @@ export default {
 
       // the event of start session button which is in header
     startSession() {
-      
       this.is_payment_modal = true;
     },
     pauseSession() {
@@ -878,7 +905,7 @@ export default {
         return;
       } else {
         await this.initializeCallClient();
-        await this.initializeVideoClient();
+        // await this.initializeVideoClient();
 
         this.is_payment_modal = false; // close payment modal
         // initiate payment modal values
@@ -1004,9 +1031,13 @@ export default {
         name: `videoRoom-${this.current_consultant.user.id}-${this.authUser.user.id}`
       }).then(
         room => {
-          console.log("Successfully joined a Room: ", room);
+          // console.log("Successfully joined a Room: ", room);
           self.activeRoom = room;
-          // room.participants.forEach(self.participantConnected);
+
+          // Subscribe to the media published by RemoteParticipants already in the Room.
+          room.participants.forEach(participant=> {
+            self.participantConnected(participant);
+          });
 
           room.on("participantConnected", self.participantConnected);
 
@@ -1015,6 +1046,19 @@ export default {
           room.once("disconnected", error =>
             room.participants.forEach(self.participantDisconnected)
           );
+
+          participantMutedOrUnmutedMedia(room, track => {
+            track.detach().forEach(element => {
+              element.remove();
+            });
+          }, track => {
+              if (track.kind === 'audio') {
+                audioPreview.appendChild(track.attach());
+              }
+              if (track.kind === 'video') {
+                videoPreview.appendChild(track.attach());
+              }
+          });
 
           //Send video call start request when the room is ready
           this.sendRequestSocket("video_call_start");
@@ -1025,29 +1069,30 @@ export default {
       );
     },
     participantConnected(participant) {
-      console.log('Participant "%s" connected', participant.identity);
+      console.log('Participant123 "%s" connected', participant.identity);
 
       const div = document.createElement("div");
       div.ref = participant.sid;
 
       participant.on("trackSubscribed", track =>
-        this.trackSubscribed(div, track)
+        this.trackSubscribed(track)
       );
-      participant.tracks.forEach(track => this.trackSubscribed(div, track));
+      participant.tracks.forEach(track => {
+        this.trackSubscribed(track)
+      });
       participant.on("trackUnsubscribed", this.trackUnsubscribed);
 
-      this.$refs.video_tag.appendChild(div);
     },
     participantDisconnected(participant) {
       console.log('Participant "%s" disconnected', participant.identity);
-
-      participant.tracks.forEach(this.trackUnsubscribed);
-      var ref = participant.sid;
-      this.$refs.ref.remove();
+      participant.tracks.forEach(track=>this.trackUnsubscribed(track));
     },
-    trackSubscribed(div, track) {
-      if (div) {
-        div.appendChild(track.attach());
+    trackSubscribed(track) {
+      if (track.kind === 'audio') {
+        this.$refs.audioPreview.appendChild(track.attach());
+      }
+      if (track.kind === 'video') {
+        this.$refs.videoPreview.appendChild(track.attach());
       }
     },
     trackUnsubscribed(track) {
@@ -1186,40 +1231,78 @@ export default {
       this.is_call_modal = false;
       this.is_session = false;
       this.is_review_modal = true;
+
+      // Stop all tracks of local participant
+      this.activeRoom.localParticipant.tracks.forEach(track=>{
+        track.stop();
+      })
+      //Disconnect from the room
+      this.activeRoom.disconnect();
     },
     handlingCallMode(type) {
       switch (type) {
-        case "voice":
+        case "audio":
           this.is_call_mode = !this.is_call_mode;
           if (!this.is_call_mode) {
-            this.activeRoom.localParticipant.audioTracks.forEach((track) => {
-              track.disable();
-            });
+            muteYourAudio(this.activeRoom)
           } else {
             if (this.is_session && !this.is_paused) {
-              this.activeRoom.localParticipant.audioTracks.forEach((track) => {
-                track.enable();
-              });
+              unmuteYourAudio(this.activeRoom)
             }
           }
           break;
         case "video":
           this.is_video_mode = !this.is_video_mode;
           if (!this.is_video_mode) {
-            this.activeRoom.localParticipant.videoTracks.forEach((track) => {
-              track.disable();
-            });
+            muteYourVideo(this.activeRoom)
           } else {
             if (this.is_session && !this.is_paused) {
-              this.activeRoom.localParticipant.videoTracks.forEach((track) => {
-                track.enable();
-              });
+              unmuteYourVideo(this.activeRoom)
             }
           }
           break;
         case "share":
           this.is_share_mode = !this.is_share_mode;
           break;
+      }
+    },
+    async handlingShareMode() {
+      this.is_share_mode = !this.is_share_mode;
+      try {
+        if( this.is_share_mode ) {
+          // The LocalVideoTrack for your screen.
+          let screenTrack;
+
+          // Create and preview your local screen.
+          screenTrack = await createScreenTrack(720, 1280);
+          
+          screenTrack.mediaStreamTrack.onended = () => { this.handlingShareMode() };
+          //Disable Camera video track
+          muteYourVideo(this.activeRoom);
+
+          this.activeRoom.localParticipant.publishTrack(screenTrack, {
+            name: 'screen', // Tracks can be named to easily find them later
+            priority: 'low', // Priority is set to high by the subscriber when the video track is rendered
+          }).then(trackPublication => {
+            this.$refs.stopScreenShareRef.share = () => {
+              this.activeRoom.localParticipant.unpublishTrack(screenTrack);
+              // TODO: remove this if the SDK is updated to emit this event
+              this.activeRoom.localParticipant.emit('trackUnpublished', trackPublication);
+              screenTrack.stop();
+              screenTrack = null;
+            };
+          })
+          .catch(error=>{
+            console.log(error)
+          });
+        } else {
+          this.$refs.stopScreenShareRef.share();
+          //Enable Camera video track
+          unmuteYourVideo(this.activeRoom);
+        }
+
+      } catch (e) {
+        alert(e.message);
       }
     },
     playAudio() {

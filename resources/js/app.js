@@ -34,10 +34,10 @@ const mutations = {
 
 if(document.getElementById("member-content")){
     // staging.gotoconsult.com/:8081
-    Vue.use(VueNativeSock, 'wss:///gotoconsult-dev.my-demo-apps.tk:8081', {
+    // Vue.use(VueNativeSock, 'wss:///gotoconsult-dev.my-demo-apps.tk:8081', {
     // Vue.use(VueNativeSock, 'wss://gotoconsult-dev.my-demo-apps.tk/:8081', {
   // Vue.use(VueNativeSock, 'wss://staging.gotoconsult.com/:443', {
-  // Vue.use(VueNativeSock, 'ws://localhost:8081', {
+  Vue.use(VueNativeSock, 'ws://localhost:8081', {
   // Vue.use(VueNativeSock, 'wss://status-socket-gotoconsult.fantasylab.io:8081', {
     store: store,
     mutations: mutations,
