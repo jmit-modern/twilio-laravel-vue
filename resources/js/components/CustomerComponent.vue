@@ -354,7 +354,7 @@
         <button class="btn decline" v-on:click="handleClose('pause')">{{$t('member.close')}}</button>
       </div>
     </drag-dialog>
-    <drag-dialog :options="{ buttonPin:false }" @close="handleClose('call')" v-show="is_call_modal" class="call">
+    <drag-dialog :options="{ buttonPin:false }" @close="handleClose('call')" v-show="is_call_modal" class="call" :class="{fullscreen: isFullscreen}">
       <div class="modal-header">
         <div class="time-status">
           <img src="/images/timer.svg" />
@@ -376,6 +376,7 @@
           <button type="button" v-on:click="handlingCallMode('audio')"><img src="/images/home/voice-available.svg" v-if="is_call_mode" /><img src="/images/home/voice-unavailable.svg" v-else /></button>
           <button type="button" v-on:click="handlingCallMode('video')"><img src="/images/home/video-available.svg" v-if="is_video_mode" /><img src="/images/home/video-unavailable.svg" v-else /></button>
           <button type="button" ref="stopScreenShareRef" v-on:click="handlingShareMode"><img src="/images/home/screen-share-available.svg" v-if="is_share_mode" /><img src="/images/home/screen-share-unavailable.svg" v-else /></button>
+          <button type="button" v-on:click="isFullscreen = !isFullscreen"><img src="/images/fullscreen.png" /></button>
           <button type="button" v-on:click="handleClose('call')"><img src="/images/hang-up.svg" /></button>
         </div>
       </div>
@@ -515,7 +516,8 @@ export default {
       form: {
         minute: 0
       },
-      screenTrack: null
+      screenTrack: null,
+      isFullscreen: false
     };
   },
   validations: {
@@ -795,7 +797,7 @@ export default {
     async selectChannel(data) {
       this.is_contact_list = this.is_mobile ? false : true;
       this.is_selected = true; // update UI status
-      this.isLoading = true; // show loading screen while initiate chat module
+      this.isLoading = true; // show loading screen while initiate chat module 
       if (!this.is_session) {
         this.current_consultant = data;
         const res = await axios.post("/api/get_reviews", data);
