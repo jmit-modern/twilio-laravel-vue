@@ -475,6 +475,7 @@ export default {
       today: null,
       incoming_audio: null,
       outgoing_audio: null,
+      isFullscreen: false,
       incoming_user: {
         id: "",
         name: "",
